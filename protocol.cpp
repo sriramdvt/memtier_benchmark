@@ -299,17 +299,20 @@ int redis_protocol::write_command_set(const char *key, int key_len, const char *
     assert(value_len > 0);
     int size = 0;
 
+    // ZADD command adds a sorted set
     if (!expiry && !offset) {
         size = evbuffer_add_printf(m_write_buf,
-            "*3\r\n"
-            "$3\r\n"
-            "SET\r\n"
+            "*4\r\n"
+            "$4\r\n"
+            "ZADD\r\n"
             "$%u\r\n", key_len);
         evbuffer_add(m_write_buf, key, key_len);
         size += key_len;
         size += evbuffer_add_printf(m_write_buf,
             "\r\n"
-            "$%u\r\n", value_len);
+            "$%u\r\n"
+            "%s\r\n"
+            "$%u\r\n", value_len, value, value_len);
     } else if(offset) {
         char offset_str[30];
         snprintf(offset_str, sizeof(offset_str)-1, "%u", offset);
@@ -362,15 +365,23 @@ int redis_protocol::write_command_get(const char *key, int key_len, unsigned int
     assert(key_len > 0);
     int size = 0;
 
+    // ZRANGE command retrieves sorted sets
     if (!offset) {
         size = evbuffer_add_printf(m_write_buf,
-            "*2\r\n"
-            "$3\r\n"
-            "GET\r\n"
+            "*4\r\n"
+            "$6\r\n"
+            "ZRANGE\r\n"
             "$%u\r\n", key_len);
         evbuffer_add(m_write_buf, key, key_len);
+        size += key_len;
+        size += evbuffer_add_printf(m_write_buf,
+            "\r\n"
+            "$1\r\n"
+            "0\r\n"
+            "$2\r\n"
+            "-1\r\n");
         evbuffer_add(m_write_buf, "\r\n", 2);
-        size += key_len + 2;
+        size += 2;
     } else {
         char offset_str[30];
         snprintf(offset_str, sizeof(offset_str)-1, "%u", offset);

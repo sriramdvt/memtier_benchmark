@@ -417,6 +417,11 @@ const char* object_generator::get_value(unsigned long long key_index, unsigned i
             m_value_buffer_mutation_pos = 0;
     }
 
+    // Making sure that the value is a string of integers
+    for (long unsigned int i = 0; i < new_size; i++) {
+        m_value_buffer[i] = '0'+abs((int)m_value_buffer[i])%10;
+    }
+
     *len = new_size;
     return m_value_buffer;
 }
